@@ -4,6 +4,7 @@ import os
 import re
 import sqlite3
 import time
+import requests
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
