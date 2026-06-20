@@ -47,6 +47,8 @@ ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambia-questa-password")
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH")
 SECRET_KEY = os.environ.get("SECRET_KEY", "sviluppo-cambia-questa-chiave-segreta")
+GOOGLE_SHEETS_WEBHOOK = os.environ.get("GOOGLE_SHEETS_WEBHOOK", "")
+SHEETS_SECRET = os.environ.get("SHEETS_SECRET", "")
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -500,6 +502,16 @@ def index():
         ask_items=[item.strip() for item in settings.get("ask_items", "").splitlines() if item.strip()],
     )
 
+def backup_signature_to_google_sheet(payload):
+    if not GOOGLE_SHEETS_WEBHOOK:
+        return
+
+    try:
+        data = payload.copy()
+        data["secret"] = SHEETS_SECRET
+        requests.post(GOOGLE_SHEETS_WEBHOOK, json=data, timeout=5)
+    except Exception as error:
+        app.logger.warning("Backup Google Sheets non riuscito: %s", error)
 
 @app.post("/firma")
 def sign_petition():
@@ -534,6 +546,17 @@ def sign_petition():
             flash(error, "error")
         return redirect(url_for("index"))
 
+    signature_id = signature_id,)
+    created_at = created_at,conn.commit()
+    backup_signature_to_google_sheet({
+    "id": signature_id,
+    "full_name": full_name,
+    "email": email or "",
+    "city": city or "",
+    "comment": comment or "",
+    "public_display": public_display,
+    "created_at": created_at,
+})
     with get_db() as conn:
         conn.execute(
             """
