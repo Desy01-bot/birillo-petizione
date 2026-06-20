@@ -509,14 +509,25 @@ def backup_signature_to_google_sheet(payload):
     try:
         data = payload.copy()
         data["secret"] = SHEETS_SECRET
-        requests.post(GOOGLE_SHEETS_WEBHOOK, json=data, timeout=5)
+
+        response = requests.post(
+            GOOGLE_SHEETS_WEBHOOK,
+            json=data,
+            timeout=5
+        )
+
+        if response.status_code >= 400:
+            app.logger.warning("Backup Google Sheets non riuscito: %s", response.text)
+
     except Exception as error:
         app.logger.warning("Backup Google Sheets non riuscito: %s", error)
+
 
 @app.post("/firma")
 def sign_petition():
     settings = get_site_settings()
     ip = client_ip()
+
     if is_rate_limited(ip):
         flash("Hai inviato troppe firme in poco tempo. Riprova più tardi.", "error")
         return redirect(url_for("index"))
@@ -534,10 +545,13 @@ def sign_petition():
     public_display = request.form.get("public_display") == "on"
 
     errors = []
+
     if len(full_name) < 2:
         errors.append("Inserisci nome e cognome o un nominativo valido.")
+
     if email and not EMAIL_RE.match(email):
         errors.append("Inserisci un indirizzo email valido oppure lascia il campo vuoto.")
+
     if not privacy_consent:
         errors.append("Per firmare devi accettare l'informativa privacy.")
 
@@ -546,17 +560,9 @@ def sign_petition():
             flash(error, "error")
         return redirect(url_for("index"))
 
-    signature_id = signature_id,)
-    created_at = created_at,conn.commit()
-    backup_signature_to_google_sheet({
-    "id": signature_id,
-    "full_name": full_name,
-    "email": email or "",
-    "city": city or "",
-    "comment": comment or "",
-    "public_display": public_display,
-    "created_at": created_at,
-})
+    signature_id = str(uuid4())
+    created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
     with get_db() as conn:
         conn.execute(
             """
@@ -566,7 +572,7 @@ def sign_petition():
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                str(uuid4()),
+                signature_id,
                 full_name,
                 email or None,
                 city or None,
@@ -575,10 +581,20 @@ def sign_petition():
                 1 if public_display else 0,
                 simple_ip_hash(ip),
                 clean_text(request.headers.get("User-Agent", ""), 240),
-                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                created_at,
             ),
         )
         conn.commit()
+
+    backup_signature_to_google_sheet({
+        "id": signature_id,
+        "full_name": full_name,
+        "email": email or "",
+        "city": city or "",
+        "comment": comment or "",
+        "public_display": public_display,
+        "created_at": created_at,
+    })
 
     flash(settings.get("form_success_message", DEFAULT_SETTINGS["form_success_message"]), "success")
     return redirect(url_for("index"))
