@@ -1,0 +1,17 @@
+<style>
+  :root {
+    --bg: {{ s.bg_color }};
+    --panel: {{ s.panel_color }};
+    --ink: {{ s.text_color }};
+    --muted: {{ s.muted_color }};
+    --accent: {{ s.accent_color }};
+    --accent-dark: {{ s.accent_dark_color }};
+    --soft: {{ s.soft_color }};
+    --border: {{ s.border_color }};
+    --site-max-width: {{ setting_int(s, 'max_width', 1120) }}px;
+    --radius: {{ setting_int(s, 'border_radius', 28) }}px;
+    --button-radius: {{ setting_int(s, 'button_radius', 999) }}px;
+    --base-font-size: {{ setting_int(s, 'base_font_size', 16) }}px;
+  }
+  {{ s.custom_css | safe }}
+</style>

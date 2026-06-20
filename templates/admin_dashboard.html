@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% include '_theme.html' %}
+</head>
+<body class="admin-body">
+  <nav class="nav admin-nav">
+    <a class="brand" href="/">{{ s.nav_brand }}</a>
+    <div class="admin-actions">
+      <a class="button secondary" href="/admin/personalizza">Personalizza sito</a>
+      <a class="button secondary" href="/">Vedi sito</a>
+      <form action="/admin/logout" method="post"><button class="secondary" type="submit">Esci</button></form>
+    </div>
+  </nav>
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Dashboard</p>
+        <h1>{{ s.hero_title }}</h1>
+      </div>
+      <a class="button" href="/admin/export.csv">Esporta CSV</a>
+    </header>
+
+    <section class="admin-metrics">
+      <article class="metric-card">
+        <span>Firme totali</span>
+        <strong>{{ total }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Obiettivo</span>
+        <strong>{{ goal }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Avanzamento</span>
+        <strong>{{ progress }}%</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>Andamento ultimi 30 giorni</h2>
+      <canvas id="signaturesChart" height="110" aria-label="Grafico firme giornaliere"></canvas>
+      <script id="dailyStats" type="application/json">{{ daily_stats | tojson }}</script>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="table-header">
+        <h2>Ultime firme</h2>
+        <a href="/admin/export.csv">Scarica tutte le firme</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data UTC</th>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Città</th>
+              <th>Messaggio</th>
+              <th>Pubblica</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sig in latest %}
+              <tr>
+                <td>{{ sig.created_at }}</td>
+                <td>{{ sig.full_name }}</td>
+                <td>{{ sig.email or "—" }}</td>
+                <td>{{ sig.city or "—" }}</td>
+                <td>{{ sig.comment or "—" }}</td>
+                <td>{{ "Sì" if sig.public_display else "No" }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6">Nessuna firma registrata.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='admin.js') }}"></script>
+</body>
+</html>

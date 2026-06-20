@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ s.meta_description }}">
+  <title>{{ s.site_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% include '_theme.html' %}
+</head>
+<body class="layout-{{ s.layout_variant }} hero-{{ s.hero_style }}">
+  <header class="hero">
+    <nav class="nav">
+      <a class="brand" href="/">{{ s.nav_brand }}</a>
+      {% if setting_bool(s, 'show_admin_link') %}
+        <a class="admin-link" href="/admin">{{ s.nav_admin_label }}</a>
+      {% endif %}
+    </nav>
+    <section class="hero-grid">
+      <div class="hero-copy">
+        {% if s.hero_eyebrow %}<p class="eyebrow">{{ s.hero_eyebrow }}</p>{% endif %}
+        <h1>{{ s.hero_title }}</h1>
+        {% if s.hero_subtitle %}<p class="lead">{{ s.hero_subtitle }}</p>{% endif %}
+        {% if setting_bool(s, 'show_location') and s.petition_location %}<p class="location">📍 {{ s.petition_location }}</p>{% endif %}
+        {% if setting_bool(s, 'show_stats') %}
+          <div class="stats-card">
+            <strong>{{ total }}</strong>
+            <span>{{ s.stats_text }} {{ goal }}</span>
+            <div class="progress" aria-label="Avanzamento raccolta firme">
+              <div style="width: {{ progress }}%"></div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+      <div class="petition-card">
+        <h2>{{ s.form_title }}</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="messages">
+              {% for category, message in messages %}
+                <p class="message {{ category }}">{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        <form action="/firma" method="post">
+          <label>
+            {{ s.form_name_label }}
+            <input type="text" name="full_name" autocomplete="name" required maxlength="120" placeholder="{{ s.form_name_placeholder }}">
+          </label>
+          <label>
+            {{ s.form_email_label }}
+            <input type="email" name="email" autocomplete="email" maxlength="160" placeholder="{{ s.form_email_placeholder }}">
+          </label>
+          <label>
+            {{ s.form_city_label }}
+            <input type="text" name="city" autocomplete="address-level2" maxlength="80" placeholder="{{ s.form_city_placeholder }}">
+          </label>
+          <label>
+            {{ s.form_comment_label }}
+            <textarea name="comment" maxlength="600" rows="4" placeholder="{{ s.form_comment_placeholder }}"></textarea>
+          </label>
+          <label class="checkbox hidden-field">
+            <span>Sito web</span>
+            <input type="text" name="website" tabindex="-1" autocomplete="off">
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" name="public_display" checked>
+            <span>{{ s.form_public_label }}</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" name="privacy_consent" required>
+            <span>{{ s.form_privacy_label }} <a href="/privacy" target="_blank">{{ s.form_privacy_link_label }}</a>.</span>
+          </label>
+          <button type="submit">{{ s.form_button_label }}</button>
+        </form>
+      </div>
+    </section>
+  </header>
+
+  <main>
+    {% if setting_bool(s, 'show_why_section') or setting_bool(s, 'show_ask_section') %}
+      <section class="content-grid">
+        {% if setting_bool(s, 'show_why_section') %}
+          <article class="panel">
+            <h2>{{ s.why_title }}</h2>
+            <p>{{ s.why_text | nl2br }}</p>
+          </article>
+        {% endif %}
+        {% if setting_bool(s, 'show_ask_section') %}
+          <article class="panel">
+            <h2>{{ s.ask_title }}</h2>
+            <ul>
+              {% for item in ask_items %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    {% if setting_bool(s, 'show_recent_section') %}
+      <section class="panel recent-panel">
+        <h2>{{ s.recent_title }}</h2>
+        {% if recent %}
+          <div class="signature-list">
+            {% for sig in recent %}
+              <article class="signature-item">
+                <strong>{{ sig.full_name }}</strong>
+                {% if sig.city %}<span>{{ sig.city }}</span>{% endif %}
+                {% if sig.comment %}<p>“{{ sig.comment }}”</p>{% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>{{ s.recent_empty_text }}</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+
+  {% if setting_bool(s, 'show_footer') %}
+    <footer>
+      <p>{{ s.footer_text }}</p>
+    </footer>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personalizza sito</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% include '_theme.html' %}
+</head>
+<body class="admin-body">
+  <nav class="nav admin-nav">
+    <a class="brand" href="/admin">← Dashboard</a>
+    <div class="admin-actions">
+      <a class="button secondary" href="/">Vedi sito</a>
+      <form action="/admin/logout" method="post"><button class="secondary" type="submit">Esci</button></form>
+    </div>
+  </nav>
+
+  <main class="admin-main customize-main">
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Area admin</p>
+        <h1>Personalizza sito</h1>
+        <p class="lead small-lead">Da qui puoi cambiare intestazioni, testi, colori, layout e sezioni visibili senza modificare il codice.</p>
+      </div>
+      <a class="button" href="/">Anteprima sito</a>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="messages admin-messages">
+          {% for category, message in messages %}
+            <p class="message {{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="customize-form" method="post">
+      {% for group in groups %}
+        <section class="panel customize-panel">
+          <h2>{{ group.title }}</h2>
+          {% if group.description %}<p class="muted">{{ group.description }}</p>{% endif %}
+          <div class="settings-grid">
+            {% for field in group.fields %}
+              {% set value = s[field.key] %}
+              {% if field.type == 'checkbox' %}
+                <label class="checkbox setting-checkbox">
+                  <input type="checkbox" name="{{ field.key }}" {% if value == '1' %}checked{% endif %}>
+                  <span>{{ field.label }}</span>
+                </label>
+              {% elif field.type == 'textarea' %}
+                <label class="setting-field setting-wide">
+                  {{ field.label }}
+                  <textarea name="{{ field.key }}" rows="{{ field.rows or 4 }}" maxlength="{{ field.max or 5000 }}">{{ value }}</textarea>
+                </label>
+              {% elif field.type == 'select' %}
+                <label class="setting-field">
+                  {{ field.label }}
+                  <select name="{{ field.key }}">
+                    {% for option_value, option_label in field.options %}
+                      <option value="{{ option_value }}" {% if value == option_value %}selected{% endif %}>{{ option_label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              {% elif field.type == 'color' %}
+                <label class="setting-field color-field">
+                  {{ field.label }}
+                  <span class="color-row">
+                    <input type="color" name="{{ field.key }}" value="{{ value }}">
+                    <input type="text" value="{{ value }}" readonly aria-label="Codice colore">
+                  </span>
+                </label>
+              {% elif field.type == 'number' %}
+                <label class="setting-field">
+                  {{ field.label }}
+                  <input type="number" name="{{ field.key }}" value="{{ value }}" min="{{ field.min or '' }}" max="{{ field.max or '' }}">
+                </label>
+              {% else %}
+                <label class="setting-field">
+                  {{ field.label }}
+                  <input type="text" name="{{ field.key }}" value="{{ value }}" maxlength="{{ field.max or 255 }}">
+                </label>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+
+      <div class="save-bar">
+        <a class="button secondary" href="/admin">Annulla</a>
+        <button type="submit">Salva modifiche</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ s.privacy_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% include '_theme.html' %}
+</head>
+<body class="layout-{{ s.layout_variant }} hero-{{ s.hero_style }}">
+  <main class="legal-page panel">
+    <h1>{{ s.privacy_title }}</h1>
+    <p>{{ s.privacy_intro | nl2br }}</p>
+    <h2>{{ s.privacy_data_title }}</h2>
+    <p>{{ s.privacy_data_text | nl2br }}</p>
+    <h2>{{ s.privacy_purpose_title }}</h2>
+    <p>{{ s.privacy_purpose_text | nl2br }}</p>
+    <h2>{{ s.privacy_rights_title }}</h2>
+    <p>{{ s.privacy_rights_text | nl2br }}</p>
+    <p><a href="/">{{ s.privacy_back_label }}</a></p>
+  </main>
+</body>
+</html>
