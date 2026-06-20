@@ -289,13 +289,58 @@ def init_db():
         conn.commit()
 
 
+def get_google_sheet_settings():
+    if not GOOGLE_SHEETS_WEBHOOK or not SHEETS_SECRET:
+        return {}
+
+    try:
+        response = requests.get(
+            GOOGLE_SHEETS_WEBHOOK,
+            params={
+                "secret": SHEETS_SECRET,
+                "type": "settings",
+            },
+            timeout=5,
+        )
+
+        if response.status_code >= 400:
+            app.logger.warning("Lettura impostazioni Google Sheets non riuscita: %s", response.text)
+            return {}
+
+        data = response.json()
+
+        if data.get("ok") and isinstance(data.get("settings"), dict):
+            return {
+                key: str(value)
+                for key, value in data["settings"].items()
+                if key in DEFAULT_SETTINGS
+            }
+
+    except Exception as error:
+        app.logger.warning("Lettura impostazioni Google Sheets non riuscita: %s", error)
+
+    return {}
+
+
 def get_site_settings():
     settings = DEFAULT_SETTINGS.copy()
-    with get_db() as conn:
-        rows = conn.execute("SELECT key, value FROM site_settings").fetchall()
-    for row in rows:
-        if row["key"] in settings:
-            settings[row["key"]] = row["value"]
+
+    try:
+        with get_db() as conn:
+            rows = conn.execute("SELECT key, value FROM site_settings").fetchall()
+
+        for row in rows:
+            if row["key"] in settings:
+                settings[row["key"]] = row["value"]
+
+    except Exception as error:
+        app.logger.warning("Lettura impostazioni locali non riuscita: %s", error)
+
+    google_settings = get_google_sheet_settings()
+
+    if google_settings:
+        settings.update(google_settings)
+
     return settings
 
 
@@ -357,12 +402,38 @@ def validate_setting(field, raw_value):
     return value
 
 
+def backup_site_settings_to_google_sheet(settings):
+    if not GOOGLE_SHEETS_WEBHOOK or not SHEETS_SECRET:
+        return
+
+    try:
+        response = requests.post(
+            GOOGLE_SHEETS_WEBHOOK,
+            json={
+                "secret": SHEETS_SECRET,
+                "type": "settings",
+                "settings": settings,
+            },
+            timeout=5,
+        )
+
+        if response.status_code >= 400:
+            app.logger.warning("Backup impostazioni Google Sheets non riuscito: %s", response.text)
+
+    except Exception as error:
+        app.logger.warning("Backup impostazioni Google Sheets non riuscito: %s", error)
+
+
 def save_site_settings(form_data):
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    validated_settings = {}
+
     with get_db() as conn:
         for field in all_setting_fields():
             key = field["key"]
             value = validate_setting(field, form_data.get(key))
+            validated_settings[key] = value
+
             conn.execute(
                 """
                 INSERT INTO site_settings (key, value, updated_at)
@@ -371,7 +442,10 @@ def save_site_settings(form_data):
                 """,
                 (key, value, now),
             )
+
         conn.commit()
+
+    backup_site_settings_to_google_sheet(validated_settings)
 
 
 def get_google_sheet_total():
