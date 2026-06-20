@@ -374,7 +374,39 @@ def save_site_settings(form_data):
         conn.commit()
 
 
+def get_google_sheet_total():
+    if not GOOGLE_SHEETS_WEBHOOK or not SHEETS_SECRET:
+        return None
+
+    try:
+        response = requests.get(
+            GOOGLE_SHEETS_WEBHOOK,
+            params={"secret": SHEETS_SECRET},
+            timeout=5,
+        )
+
+        if response.status_code >= 400:
+            app.logger.warning("Lettura totale Google Sheets non riuscita: %s", response.text)
+            return None
+
+        data = response.json()
+
+        if data.get("ok") and "total" in data:
+            return int(data["total"])
+
+    except Exception as error:
+        app.logger.warning("Lettura totale Google Sheets non riuscita: %s", error)
+
+    return None
+
+
 def count_signatures():
+    sheet_total = get_google_sheet_total()
+
+    if sheet_total is not None:
+        return sheet_total
+
+    # Se Google Sheets non risponde, il sito usa il database locale come riserva.
     with get_db() as conn:
         row = conn.execute("SELECT COUNT(*) AS total FROM signatures").fetchone()
         return row["total"]
